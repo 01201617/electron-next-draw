@@ -1,4 +1,5 @@
 "use client";
+import DrawingCanvas from "./components/DrawingCanvas";
 import MaxWindowsButton from "./components/MaxWindowsButton";
 import StopButton from "./components/stopButton";
 
@@ -9,7 +10,7 @@ export default function Home() {
         <StopButton />
         <MaxWindowsButton />
       </div>
-      <p className="bg-gray-100">hello world</p>
+      <DrawingCanvas />
     </main>
   );
 }
