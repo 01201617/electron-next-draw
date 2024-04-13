@@ -5,6 +5,11 @@ function DrawingCanvas() {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const historyRef = useRef<ImageData[]>([]);
   const historyIndexRef = useRef(0);
+  const [pen, setPen] = useState({
+    color: "#2f41a7",
+    width: 5,
+    opacity: 0.8,
+  });
 
   // ウィンドウのリサイズを検知してキャンバスのサイズを更新
   useEffect(() => {
@@ -53,9 +58,15 @@ function DrawingCanvas() {
 
     const draw = (e: MouseEvent) => {
       if (!drawing) return;
-      context.lineWidth = 5;
+      context.lineWidth = pen.width;
       context.lineCap = "round";
-      context.strokeStyle = "#000000";
+      context.strokeStyle = `rgba(${parseInt(
+        pen.color.slice(1, 3),
+        16
+      )}, ${parseInt(pen.color.slice(3, 5), 16)}, ${parseInt(
+        pen.color.slice(5, 7),
+        16
+      )}, ${pen.opacity})`;
       context.lineTo(
         e.clientX - canvas.offsetLeft,
         e.clientY - canvas.offsetTop
@@ -89,7 +100,7 @@ function DrawingCanvas() {
       canvas.removeEventListener("mouseup", stopDrawing);
       canvas.removeEventListener("mouseleave", stopDrawing);
     };
-  }, [size]);
+  }, [size, pen]);
 
   // 戻る機能
   const undo = useCallback(() => {
@@ -117,6 +128,17 @@ function DrawingCanvas() {
     }
   }, []);
 
+  // ペンの属性を更新するハンドラー
+  const updatePen = useCallback(
+    (attribute: keyof typeof pen, value: string | number) => {
+      setPen((prevPen) => ({
+        ...prevPen,
+        [attribute]: value,
+      }));
+    },
+    []
+  );
+
   return (
     <>
       <canvas
@@ -139,6 +161,40 @@ function DrawingCanvas() {
       >
         Reset
       </button>
+      <button
+        className="bg-violet-400 text-white"
+        style={{ position: "absolute", top: 20, right: 300 }}
+        onClick={() => updatePen("width", pen.width + 1)}
+      >
+        Width +
+      </button>
+      <button
+        className="bg-violet-400 text-white"
+        style={{ position: "absolute", top: 20, right: 370 }}
+        onClick={() => updatePen("width", pen.width - 1)}
+      >
+        Width -
+      </button>
+      <button
+        className="bg-neutral-400 text-white"
+        style={{ position: "absolute", top: 20, right: 490 }}
+        onClick={() => updatePen("opacity", Math.min(pen.opacity + 0.1, 1))}
+      >
+        Opaque +
+      </button>
+      <button
+        className="bg-neutral-400 text-white"
+        style={{ position: "absolute", top: 20, right: 570 }}
+        onClick={() => updatePen("opacity", Math.max(pen.opacity - 0.1, 0))}
+      >
+        Opaque -
+      </button>
+      <input
+        style={{ position: "absolute", top: 20, right: 700 }}
+        type="color"
+        value={pen.color}
+        onChange={(e) => updatePen("color", e.target.value)}
+      />
     </>
   );
 }
