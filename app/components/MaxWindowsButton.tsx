@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUpRightAndDownLeftFromCenter } from "@fortawesome/free-solid-svg-icons";
 
 export default function MaxWindowsButton() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -14,8 +16,11 @@ export default function MaxWindowsButton() {
   };
 
   return (
-    <button onClick={handleToggleMaximize}>
-      {isMaximized ? "元のサイズに戻す" : "最大化する"}
+    <button
+      className="p-2 rounded bg-blue-400 text-white hover:bg-blue-700 focus:outline-none"
+      onClick={handleToggleMaximize}
+    >
+      <FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} />
     </button>
   );
 }
