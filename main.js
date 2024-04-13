@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const serve = require("electron-serve");
 const path = require("path");
 
@@ -12,6 +12,8 @@ const createWindow = () => {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
+    transparent: true,
+    frame: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
@@ -28,6 +30,24 @@ const createWindow = () => {
       win.webContents.reloadIgnoringCache();
     });
   }
+
+  // 別のIPCイベントを使用して最大化と非最大化を区別
+  ipcMain.on("maximize-window", () => {
+    if (!win.isMaximized()) {
+      win.maximize();
+    }
+  });
+
+  ipcMain.on("unmaximize-window", () => {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    }
+  });
+
+  // 'is-maximized' イベントに対するハンドラを登録
+  ipcMain.handle("is-maximized", () => {
+    return win.isMaximized();
+  });
 };
 
 app.on("ready", () => {
@@ -38,4 +58,9 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+// レンダラープロセスからの 'quit-app' メッセージをリッスン
+ipcMain.on("quit-app", () => {
+  app.quit();
 });
