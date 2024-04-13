@@ -1,7 +1,7 @@
 "use client";
 import DrawingCanvas from "./components/DrawingCanvas";
 import MaxWindowsButton from "./components/MaxWindowsButton";
-import StopButton from "./components/stopButton";
+import StopButton from "./components/StopButton";
 
 export default function Home() {
   return (
