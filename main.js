@@ -59,39 +59,66 @@ const createWindow = () => {
   });
 
   ipcMain.on("take-screenshot", async (event) => {
-    const sources = await desktopCapturer.getSources({
-      types: ["window", "screen"],
-      thumbnailSize: { width: 1920, height: 1080 }, // 高解像度でスクリーンショットを取得
+    const allDisplays = screen.getAllDisplays();
+    const winBounds = win.getBounds();
+    const currentDisplay = allDisplays.find((display) => {
+      const inHorizontalBounds =
+        winBounds.x >= display.bounds.x &&
+        winBounds.x < display.bounds.x + display.bounds.width;
+      const inVerticalBounds =
+        winBounds.y >= display.bounds.y &&
+        winBounds.y < display.bounds.y + display.bounds.height;
+      return inHorizontalBounds && inVerticalBounds;
     });
-    const primaryDisplay = screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.size;
+
+    if (!currentDisplay) {
+      event.reply(
+        "screenshot-error",
+        "No display found for the application window."
+      );
+      return;
+    }
+
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      thumbnailSize: {
+        width: currentDisplay.bounds.width,
+        height: currentDisplay.bounds.height,
+      },
+    });
+
     const entireScreenSource = sources.find(
-      (source) =>
-        source.name === "画面全体" || source.name === "Create Next App"
+      (source) => source.display_id === currentDisplay.id.toString()
     );
 
-    // スクリーンショット取得のためのソースを選択
-    console.log(sources.map((s) => s.name)); // 利用可能なソースの名前をログ出力
     if (entireScreenSource) {
-      const image = entireScreenSource.thumbnail.resize({ width, height });
-      // const image = await entireScreenSource.thumbnail.toPNG(); // スクリーンショットをPNG形式で取得
-      const windowBounds = win.getBounds();
-      const croppedImage = image.crop(windowBounds);
+      const image = entireScreenSource.thumbnail;
+      const cropBounds = {
+        x: winBounds.x - currentDisplay.bounds.x,
+        y: winBounds.y - currentDisplay.bounds.y,
+        width: winBounds.width,
+        height: winBounds.height,
+      };
+      const croppedImage = image.crop(cropBounds);
 
-      const filePath = path.join(__dirname, "screenshot.png");
-      const pngBuffer = croppedImage.toPNG();
-      fs.writeFileSync(filePath, pngBuffer);
+      // ファイル名に日時を追加
+      const dateTime = new Date().toISOString().replace(/:/g, "-");
+      const screenshotDir = path.join(
+        app.getPath("home"),
+        "electron-next-draw/png"
+      );
+      console.log(screenshotDir);
+      fs.mkdirSync(screenshotDir, { recursive: true }); // ディレクトリがない場合は作成
+      const filePath = path.join(screenshotDir, `screenshot-${dateTime}.png`);
 
-      const nativeImg = nativeImage.createFromBuffer(pngBuffer);
-      clipboard.writeImage(nativeImg);
+      fs.writeFileSync(filePath, croppedImage.toPNG());
+      clipboard.writeImage(nativeImage.createFromBuffer(croppedImage.toPNG()));
       event.reply("screenshot-taken", filePath);
-
-      // const filePath = path.join(__dirname, "screenshot.png");
-      // fs.writeFileSync(filePath, image); // ファイルに書き込み
-      // event.reply("screenshot-taken", filePath); // レンダラーにパスを通知
-      // クリップボードに画像をセット
-      const img = nativeImage.createFromBuffer(croppedImage);
-      clipboard.writeImage(img);
+    } else {
+      event.reply(
+        "screenshot-error",
+        "Failed to capture the screen on the specified display."
+      );
     }
   });
 };
